@@ -107,12 +107,12 @@ export default function MqttConsole({ telemetry }) {
 
         <div className="flex items-center space-x-3">
           <a
-            href={stats?.emqx_dashboard_url || 'http://localhost:18083'}
+            href={stats?.emqx_dashboard_url || 'https://cloud.emqx.com/console/deployments'}
             target="_blank"
-            rel="noreferrer"
+            rel="noopener noreferrer"
             className="flex items-center space-x-1.5 px-3.5 py-2 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-dark-900 font-bold text-xs transition shadow-md shadow-cyan-500/20"
           >
-            <span>Open EMQX Dashboard</span>
+            <span>Open EMQX Cloud Console</span>
             <ExternalLink className="w-3.5 h-3.5" />
           </a>
         </div>

@@ -41,7 +41,7 @@ class Settings:
     MQTT_PASSWORD: Optional[str] = os.getenv("MQTT_PASSWORD", None)
     MQTT_CA_CERT: Optional[str] = os.getenv("MQTT_CA_CERT", None)
     MQTT_USE_EMBEDDED_BROKER: bool = os.getenv("MQTT_USE_EMBEDDED", "false").lower() in ("true", "1", "yes")
-    EMQX_DASHBOARD_URL: str = os.getenv("EMQX_DASHBOARD_URL", "https://cloud.emqx.com")
+    EMQX_DASHBOARD_URL: str = os.getenv("EMQX_DASHBOARD_URL", "https://cloud.emqx.com/console/deployments")
 
     # Time-Series Database
     SQLITE_DB_PATH: str = os.getenv("SQLITE_DB_PATH", os.path.join(os.path.dirname(__file__), "telemetry.db"))
