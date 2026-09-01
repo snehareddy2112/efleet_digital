@@ -30,9 +30,9 @@ def control_simulator(action: str = Body(..., embed=True), value: Any = Body(Non
     if not bus_simulator_instance:
         raise HTTPException(status_code=503, detail="Simulator not initialized")
 
-    if action == "pause":
+    if action in ("pause", "stop"):
         bus_simulator_instance.is_paused = True
-    elif action == "resume":
+    elif action in ("resume", "play", "start"):
         bus_simulator_instance.is_paused = False
     elif action == "set_speed":
         bus_simulator_instance.sim_speed_multiplier = float(value)
