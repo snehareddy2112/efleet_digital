@@ -51,7 +51,13 @@ tcu_sim = TCUSimulator(
     bus_id="BUS-001",
     fleet_id="OLECTRA-E-FLEET",
     can_bus=can_bus,
-    mqtt_publish_callback=tcu_mqtt_publish_hook
+    mqtt_publish_callback=tcu_mqtt_publish_hook,
+    mqtt_host=settings.MQTT_BROKER_HOST if not settings.MQTT_USE_EMBEDDED_BROKER else None,
+    mqtt_port=settings.MQTT_BROKER_PORT,
+    mqtt_tls=settings.MQTT_TLS,
+    mqtt_username=settings.MQTT_USERNAME,
+    mqtt_password=settings.MQTT_PASSWORD,
+    mqtt_ca_cert=settings.MQTT_CA_CERT
 )
 
 # Inject dependencies into route modules

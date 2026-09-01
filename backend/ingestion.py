@@ -1,13 +1,17 @@
 """
 MQTT Ingestion Pipeline & Real-Time Broker Inspector
-Subscribes to all telemetry topics, tracks bidirectional traffic, computes end-to-end latencies, and writes to storage.
+Subscribes to all telemetry topics over network TLS or direct bridge, tracks bidirectional traffic, computes end-to-end latencies, and writes to storage.
 """
 
 import time
 import json
+import ssl
 import threading
 import collections
+import os
 from typing import Dict, Any, List, Optional, Callable
+
+import paho.mqtt.client as mqtt
 
 from .storage import TimeSeriesStorage
 from .config import settings
@@ -74,6 +78,67 @@ class MQTTIngestionService:
         # Topic tree tracking
         self.topic_stats: Dict[str, Dict[str, Any]] = {}
 
+        # Network MQTT Subscriber (for external EMQX Cloud)
+        self._subscriber_client: Optional[mqtt.Client] = None
+        if not settings.MQTT_USE_EMBEDDED_BROKER and settings.MQTT_BROKER_HOST != "localhost":
+            self._init_network_subscriber()
+
+    def _init_network_subscriber(self):
+        """Initializes a real network subscriber client to EMQX Cloud"""
+        try:
+            client_id = f"Backend-Ingestion-{int(time.time())}"
+            try:
+                self._subscriber_client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id=client_id)
+            except Exception:
+                self._subscriber_client = mqtt.Client(client_id=client_id)
+
+            if settings.MQTT_USERNAME and settings.MQTT_PASSWORD:
+                self._subscriber_client.username_pw_set(settings.MQTT_USERNAME, settings.MQTT_PASSWORD)
+
+            if settings.MQTT_TLS:
+                ctx = ssl.create_default_context()
+                if settings.MQTT_CA_CERT and os.path.exists(settings.MQTT_CA_CERT):
+                    ctx.load_verify_locations(settings.MQTT_CA_CERT)
+                self._subscriber_client.tls_set_context(ctx)
+
+            def on_connect(client, userdata, flags, rc, properties=None):
+                if rc == 0:
+                    with self._lock:
+                        self.is_broker_connected = True
+                    print(f"[Backend Ingestion] Connected to EMQX Cloud at {settings.MQTT_BROKER_HOST}:{settings.MQTT_BROKER_PORT}")
+                    client.subscribe("fleet/+/bus/+/telemetry", qos=1)
+                    client.subscribe("fleet/+/bus/+/status", qos=1)
+                    client.subscribe("fleet/+/bus/+/diagnostics", qos=1)
+                    client.subscribe("fleet/+/bus/+/events", qos=1)
+                else:
+                    with self._lock:
+                        self.is_broker_connected = False
+                    print(f"[Backend Ingestion] Connect failed with code {rc}")
+
+            def on_disconnect(client, userdata, rc, properties=None):
+                with self._lock:
+                    self.is_broker_connected = False
+                    self.reconnect_count += 1
+                print(f"[Backend Ingestion] Disconnected from EMQX Cloud (code {rc})")
+
+            def on_message(client, userdata, msg):
+                try:
+                    payload_str = msg.payload.decode("utf-8")
+                    payload_json = json.loads(payload_str)
+                    self.handle_backend_ingest(msg.topic, payload_json, payload_str, len(msg.payload))
+                except Exception as e:
+                    print(f"[Backend Ingestion Parse Error] {e}")
+
+            self._subscriber_client.on_connect = on_connect
+            self._subscriber_client.on_disconnect = on_disconnect
+            self._subscriber_client.on_message = on_message
+
+            print(f"[Backend Ingestion] Subscribing to {settings.MQTT_BROKER_HOST}:{settings.MQTT_BROKER_PORT} (TLS={settings.MQTT_TLS})...")
+            self._subscriber_client.connect_async(settings.MQTT_BROKER_HOST, settings.MQTT_BROKER_PORT, keepalive=60)
+            self._subscriber_client.loop_start()
+        except Exception as e:
+            print(f"[Backend Ingestion Init Error] {e}")
+
     def handle_tcu_publish(self, topic: str, packet: Dict[str, Any]):
         """
         Invoked when TCU transmits a packet over MQTT (Direction: OUT).
@@ -98,12 +163,13 @@ class MQTTIngestionService:
             self.recent_messages.append(record)
             self._update_topic_stats(topic, size_bytes, packet)
 
-        # Immediately route through broker to backend ingestion (Direction: IN)
-        self.handle_backend_ingest(topic, packet, raw_str, size_bytes)
+        # If running in embedded/bridge mode, immediately route through broker to backend ingestion
+        if settings.MQTT_USE_EMBEDDED_BROKER or settings.MQTT_BROKER_HOST == "localhost":
+            self.handle_backend_ingest(topic, packet, raw_str, size_bytes)
 
     def handle_backend_ingest(self, topic: str, packet: Dict[str, Any], raw_str: str, size_bytes: int):
         """
-        Invoked when Cloud Backend subscribes and receives the MQTT message (Direction: IN).
+        Invoked when Cloud Backend receives the MQTT message (Direction: IN).
         """
         t_ingest = time.time()
         with self._lock:
@@ -181,10 +247,11 @@ class MQTTIngestionService:
 
             uptime_sec = int(now - self.start_time)
             avg_payload = int(self.bytes_published / max(1, self.messages_published))
+            proto = "mqtts" if settings.MQTT_TLS else "mqtt"
 
             return {
-                "broker": "EMQX v5.8.0 (Enterprise IoT Broker)",
-                "broker_url": f"mqtt://{settings.MQTT_BROKER_HOST}:{settings.MQTT_BROKER_PORT}",
+                "broker": "EMQX Cloud Serverless (TLS Cluster)" if settings.MQTT_TLS else "EMQX v5.8.0",
+                "broker_url": f"{proto}://{settings.MQTT_BROKER_HOST}:{settings.MQTT_BROKER_PORT}",
                 "emqx_dashboard_url": settings.EMQX_DASHBOARD_URL,
                 "connected": self.is_broker_connected,
                 "client_id": "TCU-001",
