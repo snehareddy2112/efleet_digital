@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   Gauge, 
   Battery, 
@@ -16,15 +16,34 @@ import {
   Share2, 
   Wifi, 
   WifiOff,
-  Sliders,
   Thermometer,
-  ShieldCheck,
-  ChevronDown
+  ChevronDown,
+  Sun,
+  Moon,
+  Laptop
 } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
 
 export default function Navbar({ activePage, setActivePage, isWsConnected, telemetry, onOpenTraceModal }) {
-  const [subsystemDropdownOpen, setSubsystemDropdownOpen] = useState(false);
-  const [pipelineDropdownOpen, setPipelineDropdownOpen] = useState(false);
+  const { theme, resolvedTheme, setTheme } = useTheme();
+  const [themeDropdownOpen, setThemeDropdownOpen] = useState(false);
+  const [subsystemsDropdownOpen, setSubsystemsDropdownOpen] = useState(false);
+
+  const themeRef = useRef(null);
+  const subsRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (themeRef.current && !themeRef.current.contains(e.target)) {
+        setThemeDropdownOpen(false);
+      }
+      if (subsRef.current && !subsRef.current.contains(e.target)) {
+        setSubsystemsDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const t = telemetry || {};
   const speed = t.vehicle_speed || 0;
@@ -32,100 +51,154 @@ export default function Navbar({ activePage, setActivePage, isWsConnected, telem
   const power = t.total_battery_power || 0;
   const stateName = t.vehicle_state_name || 'READY';
 
-  // Primary top-level navigation items
-  const mainTabs = [
+  // Primary top navigation items
+  const mainNavItems = [
     { id: 'cockpit', label: 'BUS-001 Cockpit', icon: Gauge },
-    { id: 'telemetry', label: 'All Telemetry (280+)', icon: List },
+    { id: 'telemetry', label: 'Telemetry (322)', icon: List },
     { id: 'can', label: 'CAN Monitor', icon: Cpu },
-    { id: 'tcu', label: 'TCU-001 Device', icon: Radio },
+    { id: 'tcu', label: 'TCU-001', icon: Radio },
     { id: 'mqtt', label: 'MQTT Console', icon: MessageSquare },
     { id: 'diagnostics', label: 'Diagnostics & DTCs', icon: AlertTriangle },
     { id: 'architecture', label: 'Data Pipeline E2E', icon: Layers }
   ];
 
-  // Subsystems for detailed drill-down
-  const subsystems = [
-    { id: 'sub-vehicle', label: 'Vehicle & Kinematics', icon: Gauge, desc: 'Speed, Gear, Odometer, Mass, Driver' },
-    { id: 'sub-batteries', label: 'Dual Battery Packs', icon: Battery, desc: 'Pack A & Pack B 160 kWh LFP, Contactors' },
-    { id: 'sub-bms', label: 'BMS & Cell Matrix', icon: Layers, desc: '200s Cell Voltages, Balancing, Gradients' },
-    { id: 'sub-powertrain', label: 'Motor & Inverter', icon: Zap, desc: '250 kW PMSM, Torque, SiC Inverter' },
-    { id: 'sub-dynamics', label: 'Dynamics & 6-DOF IMU', icon: Activity, desc: 'Accelerometers, Gyro, Wheel Speeds, Slip' },
-    { id: 'sub-brakes', label: 'Brakes & Regeneration', icon: Disc, desc: 'Regen Power, Pneumatic Air, ABS/ESC' },
-    { id: 'sub-hvac', label: 'Dual-Zone HVAC', icon: Wind, desc: 'Cabin AC, Scroll Compressor, Temperatures' },
-    { id: 'sub-charging', label: 'Charging & 24V Aux', icon: Zap, desc: 'CCS2 Fast Charging, DC-DC Converter' },
-    { id: 'sub-thermal', label: 'Thermal Management', icon: Thermometer, desc: 'Dual Coolant Loops, Pumps, Radiator' },
-    { id: 'sub-gps', label: 'GPS Route & Elevation', icon: MapPin, desc: 'Corridor Coordinates, Stops, Elevation' }
+  // Detailed Subsystem views
+  const subsystemCategories = [
+    {
+      group: 'ENERGY & BATTERY',
+      items: [
+        { id: 'sub-batteries', label: 'Dual Battery Packs', desc: 'Pack A & Pack B 160 kWh LFP, Contactors', icon: Battery },
+        { id: 'sub-bms', label: 'BMS & 200s Cell Matrix', desc: 'Cell Voltages, Active Shunts, Thermal Gradients', icon: Layers },
+        { id: 'sub-charging', label: 'CCS2 Charging & 24V Aux', desc: 'Fast DC Charging, DC-DC Converter', icon: Zap },
+        { id: 'sub-thermal', label: 'Thermal Management', desc: 'Dual Coolant Loops, Pumps, Radiator', icon: Thermometer },
+      ]
+    },
+    {
+      group: 'POWERTRAIN & DYNAMICS',
+      items: [
+        { id: 'sub-powertrain', label: '250 kW Motor & Inverter', desc: 'PMSM Torque, RPM, SiC Inverter Efficiency', icon: Zap },
+        { id: 'sub-brakes', label: 'Brakes & Regeneration', desc: 'Regen Energy Recovery, Pneumatic Reservoir', icon: Disc },
+        { id: 'sub-dynamics', label: 'Dynamics & 6-DOF IMU', desc: 'Accelerometers, Gyro, Wheel Slip Ratios', icon: Activity },
+        { id: 'sub-vehicle', label: 'Vehicle & Kinematics', desc: 'Speed, Mass, Passenger Load, Pedals', icon: Gauge },
+        { id: 'sub-hvac', label: 'Dual-Zone HVAC', desc: 'Cabin Climate, Scroll Compressor Power', icon: Wind },
+        { id: 'sub-gps', label: 'GPS Route & Elevation', desc: 'Telangana NH-163 Corridor, Waypoints', icon: MapPin },
+      ]
+    }
   ];
 
-  const isSubsystemActive = subsystems.some(s => s.id === activePage);
+  const allSubsystemItems = subsystemCategories.flatMap(g => g.items);
+  const activeSubsystem = allSubsystemItems.find(s => s.id === activePage);
 
   return (
-    <header className="sticky top-0 z-40 bg-dark-900/95 backdrop-blur-md border-b border-dark-600">
-      {/* Top Cockpit Header */}
-      <div className="px-4 py-2 flex items-center justify-between border-b border-dark-700/50">
+    <header className="sticky top-0 z-40 bg-white/95 dark:bg-dark-900/95 backdrop-blur-md border-b border-slate-200 dark:border-dark-700 transition-colors">
+      {/* Top Operations Header */}
+      <div className="px-4 py-2.5 flex items-center justify-between border-b border-slate-200/80 dark:border-dark-750">
+        {/* Branding & Vehicle Metadata */}
         <div className="flex items-center space-x-3">
-          <div className="p-2 rounded-lg bg-gradient-to-br from-cyan-500/20 to-blue-600/30 border border-cyan-500/40">
-            <Zap className="w-5 h-5 text-ev-cyan" />
+          <div className="px-2.5 py-1.5 rounded bg-slate-100 dark:bg-dark-800 border border-slate-300 dark:border-dark-600 flex items-center space-x-2">
+            <span className="font-mono font-bold text-sm tracking-wider text-slate-900 dark:text-slate-100">
+              E-FLEET
+            </span>
+            <span className="text-slate-400 dark:text-slate-600">/</span>
+            <span className="font-mono text-xs font-semibold px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60">
+              BUS-001
+            </span>
           </div>
-          <div>
-            <div className="flex items-center space-x-2">
-              <span className="font-extrabold text-base tracking-wider bg-gradient-to-r from-cyan-400 via-teal-300 to-blue-400 bg-clip-text text-transparent">
-                OLECTRA DIGITAL TWIN
-              </span>
-              <span className="text-xs px-2 py-0.5 rounded bg-cyan-950 text-cyan-400 font-mono border border-cyan-800/60">
-                BUS-001
-              </span>
-            </div>
-            <div className="text-[11px] text-slate-400 flex items-center space-x-2 font-mono">
-              <span>Model: <strong>ELECTRA-12M</strong></span>
-              <span>•</span>
-              <span>TCU: <strong>TCU-001</strong></span>
-              <span>•</span>
-              <span>LFP 320 kWh</span>
-            </div>
+
+          <div className="hidden lg:flex items-center space-x-2 text-xs font-mono text-slate-500 dark:text-slate-400">
+            <span>Model: <strong className="text-slate-700 dark:text-slate-300">ELECTRA-12M</strong></span>
+            <span>•</span>
+            <span>TCU: <strong className="text-slate-700 dark:text-slate-300">TCU-001</strong></span>
+            <span>•</span>
+            <span>Pack: <strong className="text-slate-700 dark:text-slate-300">Dual LFP 320 kWh</strong></span>
           </div>
         </div>
 
-        {/* Live Cockpit Status Strip */}
+        {/* Live Operations Telemetry Strip */}
         <div className="flex items-center space-x-3">
-          <div className="hidden md:flex items-center space-x-3 px-3 py-1.5 rounded-lg bg-dark-800/90 border border-dark-600 text-xs font-mono">
+          <div className="hidden md:flex items-center space-x-3 px-3 py-1.5 rounded bg-slate-50 dark:bg-dark-800 border border-slate-200 dark:border-dark-700 text-xs font-mono">
             <div className="flex items-center space-x-1.5">
-              <span className="text-slate-400">STATE:</span>
-              <span className="text-emerald-400 font-bold">{stateName}</span>
+              <span className="text-slate-500 dark:text-slate-400">STATE:</span>
+              <span className="text-emerald-600 dark:text-emerald-400 font-bold">{stateName}</span>
             </div>
-            <span className="text-slate-600">|</span>
+            <span className="text-slate-300 dark:text-slate-700">|</span>
             <div className="flex items-center space-x-1.5">
-              <span className="text-slate-400">SPEED:</span>
-              <span className="text-cyan-400 font-bold">{speed.toFixed(1)} km/h</span>
+              <span className="text-slate-500 dark:text-slate-400">SPEED:</span>
+              <span className="text-slate-900 dark:text-slate-100 font-bold">{speed.toFixed(1)} km/h</span>
             </div>
-            <span className="text-slate-600">|</span>
+            <span className="text-slate-300 dark:text-slate-700">|</span>
             <div className="flex items-center space-x-1.5">
-              <span className="text-slate-400">SOC:</span>
-              <span className="text-amber-400 font-bold">{soc.toFixed(1)}%</span>
+              <span className="text-slate-500 dark:text-slate-400">SOC:</span>
+              <span className="text-blue-600 dark:text-blue-400 font-bold">{soc.toFixed(1)}%</span>
             </div>
-            <span className="text-slate-600">|</span>
+            <span className="text-slate-300 dark:text-slate-700">|</span>
             <div className="flex items-center space-x-1.5">
-              <span className="text-slate-400">POWER:</span>
-              <span className="text-purple-400 font-bold">{power.toFixed(1)} kW</span>
+              <span className="text-slate-500 dark:text-slate-400">POWER:</span>
+              <span className="text-slate-700 dark:text-slate-300 font-bold">{power.toFixed(1)} kW</span>
             </div>
           </div>
 
+          {/* Trace Live Message Trigger */}
           <button
             onClick={onOpenTraceModal}
-            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-cyan-500/10 border border-cyan-500/40 text-cyan-300 hover:bg-cyan-500/20 text-xs font-medium transition shadow-sm"
+            className="flex items-center space-x-1.5 px-3 py-1.5 rounded bg-slate-100 dark:bg-dark-800 hover:bg-slate-200 dark:hover:bg-dark-700 border border-slate-300 dark:border-dark-600 text-slate-700 dark:text-slate-200 text-xs font-medium transition"
           >
-            <Share2 className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Trace Live Message</span>
+            <Share2 className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+            <span className="hidden sm:inline">Trace Data Path</span>
           </button>
 
+          {/* Theme Switcher Widget */}
+          <div className="relative" ref={themeRef}>
+            <button
+              onClick={() => setThemeDropdownOpen(!themeDropdownOpen)}
+              title="Switch Theme"
+              className="flex items-center space-x-1.5 px-2.5 py-1.5 rounded bg-slate-100 dark:bg-dark-800 hover:bg-slate-200 dark:hover:bg-dark-700 border border-slate-300 dark:border-dark-600 text-slate-700 dark:text-slate-300 text-xs font-mono transition"
+            >
+              {resolvedTheme === 'dark' ? (
+                <Moon className="w-3.5 h-3.5 text-blue-400" />
+              ) : (
+                <Sun className="w-3.5 h-3.5 text-amber-500" />
+              )}
+              <span className="capitalize hidden sm:inline">{theme}</span>
+              <ChevronDown className="w-3 h-3 text-slate-400" />
+            </button>
+
+            {themeDropdownOpen && (
+              <div className="absolute right-0 mt-1.5 w-32 rounded bg-white dark:bg-dark-850 border border-slate-200 dark:border-dark-650 shadow-lg py-1 z-50 text-xs font-mono">
+                <button
+                  onClick={() => { setTheme('light'); setThemeDropdownOpen(false); }}
+                  className={`w-full px-3 py-1.5 text-left flex items-center space-x-2 transition ${theme === 'light' ? 'bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 font-bold' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-dark-750'}`}
+                >
+                  <Sun className="w-3.5 h-3.5 text-amber-500" />
+                  <span>Light</span>
+                </button>
+                <button
+                  onClick={() => { setTheme('dark'); setThemeDropdownOpen(false); }}
+                  className={`w-full px-3 py-1.5 text-left flex items-center space-x-2 transition ${theme === 'dark' ? 'bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 font-bold' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-dark-750'}`}
+                >
+                  <Moon className="w-3.5 h-3.5 text-blue-400" />
+                  <span>Dark</span>
+                </button>
+                <button
+                  onClick={() => { setTheme('system'); setThemeDropdownOpen(false); }}
+                  className={`w-full px-3 py-1.5 text-left flex items-center space-x-2 transition ${theme === 'system' ? 'bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 font-bold' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-dark-750'}`}
+                >
+                  <Laptop className="w-3.5 h-3.5 text-slate-400" />
+                  <span>System</span>
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Connection Status Indicator */}
           <div className="flex items-center space-x-1.5 text-xs font-mono">
             {isWsConnected ? (
-              <span className="flex items-center text-emerald-400 space-x-1 px-2 py-1 rounded bg-emerald-950/60 border border-emerald-800">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+              <span className="flex items-center text-emerald-700 dark:text-emerald-400 space-x-1.5 px-2 py-1 rounded bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 live-pulse" />
                 <span className="text-[11px] font-bold">1 Hz LIVE</span>
               </span>
             ) : (
-              <span className="flex items-center text-rose-400 space-x-1 px-2 py-1 rounded bg-rose-950/60 border border-rose-800">
+              <span className="flex items-center text-rose-700 dark:text-rose-400 space-x-1.5 px-2 py-1 rounded bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800">
                 <WifiOff className="w-3 h-3" />
                 <span className="text-[11px] font-bold">OFFLINE</span>
               </span>
@@ -134,94 +207,77 @@ export default function Navbar({ activePage, setActivePage, isWsConnected, telem
         </div>
       </div>
 
-      {/* Subsystem & Navigation Bar */}
-      <div className="px-4 flex items-center justify-between overflow-x-auto py-1.5 gap-2 border-b border-dark-700/30">
-        {/* Main tabs */}
+      {/* Subsystem & Navigation Tabs */}
+      <div className="px-4 py-1.5 flex items-center justify-between overflow-x-auto gap-2">
+        {/* Main Navigation Tabs */}
         <div className="flex items-center space-x-1">
-          {mainTabs.map((item) => {
-            const Icon = item.icon;
-            const isActive = activePage === item.id;
+          {mainNavItems.map(tab => {
+            const Icon = tab.icon;
+            const isActive = activePage === tab.id;
             return (
               <button
-                key={item.id}
-                onClick={() => setActivePage(item.id)}
-                className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-md text-xs font-medium whitespace-nowrap transition-all ${
+                key={tab.id}
+                onClick={() => setActivePage(tab.id)}
+                className={`flex items-center space-x-1.5 px-3 py-1.5 rounded text-xs font-medium whitespace-nowrap transition ${
                   isActive
-                    ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/50 shadow-sm shadow-cyan-950'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-dark-800'
+                    ? 'bg-slate-200 dark:bg-dark-750 text-blue-700 dark:text-blue-400 font-bold border border-slate-300 dark:border-dark-600'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-dark-800'
                 }`}
               >
-                <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-cyan-400' : 'text-slate-400'}`} />
-                <span>{item.label}</span>
+                <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400 dark:text-slate-500'}`} />
+                <span>{tab.label}</span>
               </button>
             );
           })}
         </div>
 
-        {/* Subsystem Drilldown Selector */}
-        <div className="flex items-center space-x-1 pl-2 border-l border-dark-700">
-          <span className="text-[11px] font-mono text-slate-500 uppercase mr-1 hidden lg:inline">Subsystems:</span>
-          <div className="flex items-center space-x-1 overflow-x-auto">
-            {subsystems.slice(0, 5).map((sub) => {
-              const Icon = sub.icon;
-              const isActive = activePage === sub.id;
-              return (
-                <button
-                  key={sub.id}
-                  onClick={() => setActivePage(sub.id)}
-                  className={`flex items-center space-x-1 px-2.5 py-1 rounded text-[11px] font-mono whitespace-nowrap transition ${
-                    isActive
-                      ? 'bg-purple-500/20 text-purple-300 border border-purple-500/50 font-bold'
-                      : 'text-slate-400 hover:text-slate-200 hover:bg-dark-800'
-                  }`}
-                >
-                  <Icon className="w-3 h-3" />
-                  <span>{sub.label.split(' ')[0]}</span>
-                </button>
-              );
-            })}
+        {/* 10 Subsystem Drilldown Dropdown Menu */}
+        <div className="relative" ref={subsRef}>
+          <button
+            onClick={() => setSubsystemsDropdownOpen(!subsystemsDropdownOpen)}
+            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded text-xs font-medium whitespace-nowrap transition border ${
+              activeSubsystem
+                ? 'bg-blue-50 dark:bg-dark-750 text-blue-700 dark:text-blue-400 font-bold border-blue-300 dark:border-blue-800'
+                : 'bg-slate-50 dark:bg-dark-850 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-dark-700 hover:bg-slate-100 dark:hover:bg-dark-800'
+            }`}
+          >
+            <Layers className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+            <span>{activeSubsystem ? activeSubsystem.label : 'Subsystem Drilldowns (10)'}</span>
+            <ChevronDown className="w-3 h-3 text-slate-400" />
+          </button>
 
-            {/* More Subsystems Dropdown */}
-            <div className="relative">
-              <button
-                onClick={() => setSubsystemDropdownOpen(!subsystemDropdownOpen)}
-                className={`flex items-center space-x-1 px-2.5 py-1 rounded text-[11px] font-mono whitespace-nowrap transition ${
-                  isSubsystemActive && !subsystems.slice(0, 5).some(s => s.id === activePage)
-                    ? 'bg-purple-500/20 text-purple-300 border border-purple-500/50'
-                    : 'bg-dark-800 text-slate-300 hover:text-white'
-                }`}
-              >
-                <span>More Subsystems</span>
-                <ChevronDown className="w-3 h-3" />
-              </button>
-
-              {subsystemDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-64 rounded-xl bg-dark-800 border border-dark-600 shadow-2xl p-2 z-50 space-y-1 animate-fadeIn">
-                  {subsystems.map((sub) => {
-                    const Icon = sub.icon;
+          {subsystemsDropdownOpen && (
+            <div className="absolute right-0 mt-1.5 w-80 rounded bg-white dark:bg-dark-850 border border-slate-200 dark:border-dark-650 shadow-xl py-2 z-50 text-xs">
+              {subsystemCategories.map((cat, idx) => (
+                <div key={idx} className={idx > 0 ? 'mt-2 pt-2 border-t border-slate-100 dark:border-dark-750' : ''}>
+                  <div className="px-3 py-1 font-mono text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                    {cat.group}
+                  </div>
+                  {cat.items.map(sub => {
+                    const SubIcon = sub.icon;
+                    const isSubActive = activePage === sub.id;
                     return (
                       <button
                         key={sub.id}
-                        onClick={() => {
-                          setActivePage(sub.id);
-                          setSubsystemDropdownOpen(false);
-                        }}
-                        className={`w-full text-left p-2 rounded-lg text-xs flex items-center space-x-2 transition ${
-                          activePage === sub.id ? 'bg-cyan-500/20 text-cyan-300' : 'text-slate-300 hover:bg-dark-700'
+                        onClick={() => { setActivePage(sub.id); setSubsystemsDropdownOpen(false); }}
+                        className={`w-full px-3 py-2 text-left flex items-start space-x-2.5 transition ${
+                          isSubActive
+                            ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 font-semibold'
+                            : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-dark-750'
                         }`}
                       >
-                        <Icon className="w-4 h-4 text-cyan-400 shrink-0" />
-                        <div className="truncate">
-                          <div className="font-bold">{sub.label}</div>
-                          <div className="text-[10px] text-slate-400 truncate">{sub.desc}</div>
+                        <SubIcon className={`w-4 h-4 mt-0.5 flex-shrink-0 ${isSubActive ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400'}`} />
+                        <div>
+                          <div className="font-medium">{sub.label}</div>
+                          <div className="text-[11px] text-slate-400 dark:text-slate-500 leading-tight">{sub.desc}</div>
                         </div>
                       </button>
                     );
                   })}
                 </div>
-              )}
+              ))}
             </div>
-          </div>
+          )}
         </div>
       </div>
     </header>

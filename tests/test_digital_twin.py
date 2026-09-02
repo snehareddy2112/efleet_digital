@@ -13,6 +13,7 @@ Tests:
 import sys
 import os
 import time
+import json
 
 # Ensure project root is in Python module search path
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -129,11 +130,14 @@ def test_end_to_end_single_signal_trace():
     """Verifies single-value correlation across BUS -> CAN -> TCU -> MQTT -> DB."""
     can_bus = CANBus("CAN_E2E_BUS")
     bus = BusSimulator({"busId": "BUS-001"}, can_bus=can_bus)
-    tcu = TCUSimulator("TCU-001", "BUS-001", can_bus=can_bus)
     db = TimeSeriesStorage(":memory:")
     ingestion = MQTTIngestionService(storage=db)
 
-    tcu.mqtt_publish_cb = lambda topic, payload: ingestion.handle_tcu_publish(topic, payload)
+    def mock_publish(topic, payload):
+        ingestion.handle_tcu_publish(topic, payload)
+        ingestion.handle_backend_ingest(topic, payload, json.dumps(payload), len(json.dumps(payload)))
+
+    tcu = TCUSimulator("TCU-001", "BUS-001", can_bus=can_bus, mqtt_publish_callback=mock_publish)
 
     bus_state = bus.tick(1.0)
     tcu.step(bus_state, 1.0)

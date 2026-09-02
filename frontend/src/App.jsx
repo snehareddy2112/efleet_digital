@@ -64,7 +64,7 @@ export default function App() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#070b13] text-slate-100 flex flex-col font-sans">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#070b12] text-slate-900 dark:text-slate-100 flex flex-col font-sans transition-colors duration-150">
       {/* Top Cockpit Navbar */}
       <Navbar
         activePage={activePage}
@@ -167,8 +167,8 @@ export default function App() {
       />
 
       {/* Footer */}
-      <footer className="py-4 border-t border-dark-700/60 text-center text-xs text-slate-500 font-mono">
-        Olectra E-Fleet — Realistic EV Bus (BUS-001) + TCU-001 Digital Twin Telematics Platform
+      <footer className="py-4 border-t border-slate-200 dark:border-dark-700 text-center text-xs text-slate-500 font-mono">
+        E-FLEET DIGITAL — BUS-001 Vehicle Telematics & Operations Platform (ELECTRA-12M / TCU-001)
       </footer>
     </div>
   );

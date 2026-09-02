@@ -3,10 +3,10 @@ import { Bus, Zap, Battery, Activity, Route, MapPin, Gauge, ShieldCheck, ArrowUp
 
 export default function FleetOverview({ telemetry, onSelectBus }) {
   const kpis = [
-    { label: 'Total Fleet Size', value: '100 Buses', sub: 'Olectra E-Fleet Network', icon: Bus, color: 'text-cyan-400', border: 'border-cyan-500/30' },
-    { label: 'Active Digital Twins', value: '3 Active (BUS-001 Reference)', sub: 'Full Physics & CAN Sims', icon: Zap, color: 'text-emerald-400', border: 'border-emerald-500/30' },
-    { label: 'Average Fleet SOC', value: `${(telemetry?.total_battery_soc || 81.8).toFixed(1)}%`, sub: '320 kWh LFP Dual-Pack', icon: Battery, color: 'text-amber-400', border: 'border-amber-500/30' },
-    { label: 'Active Transit Corridors', value: '8 Highways', sub: 'Telangana State TSRTC', icon: Route, color: 'text-purple-400', border: 'border-purple-500/30' }
+    { label: 'Total Fleet Size', value: '100 Buses', sub: 'E-Fleet Network', icon: Bus, color: 'text-blue-600', border: 'border-slate-200' },
+    { label: 'Active Telematics Units', value: '1 Active (BUS-001)', sub: 'Full Physics & CAN Sims', icon: Zap, color: 'text-emerald-600', border: 'border-slate-200' },
+    { label: 'Average Fleet SOC', value: `${(telemetry?.total_battery_soc || 81.8).toFixed(1)}%`, sub: '320 kWh LFP Dual-Pack', icon: Battery, color: 'text-amber-600', border: 'border-slate-200' },
+    { label: 'Active Transit Corridors', value: '8 Highways', sub: 'Telangana State TSRTC', icon: Route, color: 'text-purple-600', border: 'border-slate-200' }
   ];
 
   const routes = [
@@ -30,41 +30,41 @@ export default function FleetOverview({ telemetry, onSelectBus }) {
         {kpis.map((kpi, idx) => {
           const Icon = kpi.icon;
           return (
-            <div key={idx} className={`glass-panel p-4 rounded-xl border ${kpi.border}`}>
+            <div key={idx} className={`glass-panel p-4 rounded-lg border ${kpi.border}`}>
               <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{kpi.label}</span>
-                <div className="p-2 rounded-lg bg-dark-800 border border-dark-600">
+                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{kpi.label}</span>
+                <div className="p-2 rounded bg-slate-100 dark:bg-dark-800 border border-slate-200 dark:border-dark-700">
                   <Icon className={`w-4 h-4 ${kpi.color}`} />
                 </div>
               </div>
-              <div className="text-xl font-extrabold text-slate-100 font-mono">{kpi.value}</div>
-              <div className="text-xs text-slate-400 mt-1">{kpi.sub}</div>
+              <div className="text-xl font-bold text-slate-900 dark:text-slate-100 font-mono">{kpi.value}</div>
+              <div className="text-xs text-slate-500 mt-1">{kpi.sub}</div>
             </div>
           );
         })}
       </div>
 
-      {/* Main Focus: BUS-001 Reference Digital Twin Banner */}
-      <div className="glass-panel-glow p-5 rounded-xl border border-cyan-500/30">
+      {/* Main Focus: BUS-001 Reference Banner */}
+      <div className="glass-panel p-5 rounded-lg border space-y-3">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center space-x-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
-              <h3 className="text-base font-bold text-slate-100">Reference Digital Twin: BUS-001 + TCU-001</h3>
-              <span className="text-xs px-2 py-0.5 rounded bg-cyan-950 text-cyan-400 font-mono border border-cyan-800/60">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 live-pulse" />
+              <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Primary Vehicle: BUS-001 + TCU-001</h3>
+              <span className="text-xs px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-400 font-mono border border-blue-200 dark:border-blue-800">
                 100% High-Fidelity Physics & CAN
               </span>
             </div>
-            <p className="text-xs text-slate-300">
-              Simulating continuous telemetry flow through <strong className="text-cyan-300">ECUs → CAN Bus → TCU-001 → MQTT Broker → Cloud Ingestion → Dashboard</strong>.
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Continuous telemetry stream through <strong>ECUs → CAN Bus → TCU-001 → MQTT Broker → Cloud Ingestion → Operations Dashboard</strong>.
             </p>
           </div>
 
           <button
-            onClick={() => onSelectBus('digital-twin')}
-            className="flex items-center justify-center space-x-2 px-4 py-2 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-dark-900 font-bold text-xs transition shadow-lg shadow-cyan-500/20"
+            onClick={() => onSelectBus('cockpit')}
+            className="flex items-center justify-center space-x-2 px-4 py-2 rounded bg-blue-600 hover:bg-blue-500 text-white font-medium text-xs transition shadow-sm"
           >
-            <span>Open BUS-001 Digital Twin</span>
+            <span>Open BUS-001 Cockpit</span>
             <ArrowUpRight className="w-4 h-4" />
           </button>
         </div>

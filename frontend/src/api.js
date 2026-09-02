@@ -1,5 +1,5 @@
 /**
- * REST API and WebSocket Client for Olectra E-Fleet Platform
+ * REST API and WebSocket Client for E-Fleet Digital Operations Platform
  */
 
 const API_BASE = import.meta.env.VITE_BACKEND_URL ? `${import.meta.env.VITE_BACKEND_URL}/api` : '/api';

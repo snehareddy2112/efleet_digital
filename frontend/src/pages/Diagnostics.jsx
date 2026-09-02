@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { AlertTriangle, ShieldAlert, CheckCircle2, RefreshCw, Zap, Flame, Thermometer, Cpu, Radio } from 'lucide-react';
+import { AlertTriangle, ShieldAlert, CheckCircle2, Zap, Flame, Thermometer, Cpu, Radio } from 'lucide-react';
 import { fetchDiagnostics, injectFault } from '../api';
 
 export default function Diagnostics({ telemetry }) {
@@ -59,120 +59,137 @@ export default function Diagnostics({ telemetry }) {
   return (
     <div className="space-y-6">
       {/* Header & Active DTC Summary Strip */}
-      <div className="glass-panel p-5 rounded-xl border border-dark-600 flex flex-wrap items-center justify-between gap-4">
+      <div className="glass-panel p-4 rounded-lg border flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center space-x-3">
-          <div className="p-3 rounded-lg bg-dark-800 border border-dark-600">
-            <AlertTriangle className={`w-6 h-6 ${(diagData?.active_dtc_count || 0) > 0 ? 'text-rose-400' : 'text-emerald-400'}`} />
+          <div className="p-2.5 rounded bg-slate-100 dark:bg-dark-800 border border-slate-300 dark:border-dark-600">
+            <AlertTriangle className={`w-5 h-5 ${(diagData?.active_dtc_count || 0) > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`} />
           </div>
           <div>
-            <h2 className="text-base font-bold text-slate-100">Vehicle Diagnostics & Fault Injection Rack</h2>
-            <p className="text-xs text-slate-400 mt-0.5">
-              Live OBD-II / J1939 Diagnostic Trouble Codes (DTCs), severity classification, and active simulation overrides.
+            <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100">Vehicle Diagnostics & Fault Injection Rack</h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Live OBD-II / J1939 Diagnostic Trouble Codes (DTCs), severity levels, and interactive simulation overrides.
             </p>
           </div>
         </div>
 
-        <div className="flex items-center space-x-3 font-mono text-xs">
-          <div className="px-3 py-1.5 rounded bg-dark-900 border border-dark-700">
-            Active DTCs: <span className="text-rose-400 font-bold">{diagData?.active_dtc_count || 0}</span>
+        <div className="flex items-center space-x-2 font-mono text-xs">
+          <div className="px-2.5 py-1 rounded bg-slate-100 dark:bg-dark-850 border border-slate-300 dark:border-dark-700">
+            Active DTCs: <span className="text-rose-600 dark:text-rose-400 font-bold">{diagData?.active_dtc_count || 0}</span>
           </div>
-          <div className="px-3 py-1.5 rounded bg-dark-900 border border-dark-700">
-            Critical: <span className="text-rose-400 font-bold">{diagData?.critical_fault_count || 0}</span>
+          <div className="px-2.5 py-1 rounded bg-slate-100 dark:bg-dark-850 border border-slate-300 dark:border-dark-700">
+            Critical: <span className="text-rose-600 dark:text-rose-400 font-bold">{diagData?.critical_fault_count || 0}</span>
           </div>
-          <div className="px-3 py-1.5 rounded bg-dark-900 border border-dark-700">
-            Warnings: <span className="text-amber-400 font-bold">{diagData?.warning_count || 0}</span>
+          <div className="px-2.5 py-1 rounded bg-slate-100 dark:bg-dark-850 border border-slate-300 dark:border-dark-700">
+            Warnings: <span className="text-amber-600 dark:text-amber-400 font-bold">{diagData?.warning_count || 0}</span>
           </div>
         </div>
       </div>
 
       {/* Active DTC Alert Table */}
-      <div className="glass-panel p-5 rounded-xl border border-dark-600 space-y-3">
-        <div className="flex items-center justify-between border-b border-dark-700 pb-2">
-          <h3 className="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center space-x-2">
-            <ShieldAlert className="w-4 h-4 text-rose-400" />
+      <div className="glass-panel p-4 rounded-lg border space-y-3">
+        <div className="flex items-center justify-between border-b border-slate-200 dark:border-dark-700 pb-2">
+          <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center space-x-1.5">
+            <ShieldAlert className="w-4 h-4 text-rose-600 dark:text-rose-400" />
             <span>Active Diagnostic Trouble Codes (DTCs)</span>
           </h3>
-          <span className="text-[11px] text-slate-400 font-mono">SAE J2012 / J1939 Compliant</span>
+          <span className="text-[11px] text-slate-500 font-mono">SAE J2012 / J1939 Compliant</span>
         </div>
 
         {(diagData?.active_dtcs?.length || 0) > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs font-mono">
-              <thead className="bg-dark-900 text-slate-400 border-b border-dark-700 uppercase tracking-wider text-[10px]">
+              <thead className="bg-slate-100 dark:bg-dark-850 text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-dark-700 uppercase tracking-wider text-[10px]">
                 <tr>
-                  <th className="py-2.5 px-3">DTC Code</th>
-                  <th className="py-2.5 px-3">Severity</th>
-                  <th className="py-2.5 px-3">Subsystem</th>
-                  <th className="py-2.5 px-3">Description</th>
-                  <th className="py-2.5 px-3">Remedial Action</th>
-                  <th className="py-2.5 px-3">Time</th>
+                  <th className="py-2 px-3">DTC Code</th>
+                  <th className="py-2 px-3">Severity</th>
+                  <th className="py-2 px-3">Subsystem</th>
+                  <th className="py-2 px-3">Description</th>
+                  <th className="py-2 px-3">Remedial Action</th>
+                  <th className="py-2 px-3">Time</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-dark-700/60">
+              <tbody className="divide-y divide-slate-200/80 dark:divide-dark-750">
                 {diagData.active_dtcs.map((dtc, idx) => (
-                  <tr key={idx} className="hover:bg-dark-800/60 transition">
-                    <td className="py-2.5 px-3 font-bold text-rose-400">{dtc.dtc_code}</td>
-                    <td className="py-2.5 px-3">
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                        dtc.severity === 'CRITICAL' ? 'bg-rose-950 text-rose-400 border border-rose-800' : 'bg-amber-950 text-amber-400 border border-amber-800'
+                  <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-dark-800/50 transition">
+                    <td className="py-2 px-3 font-bold text-rose-600 dark:text-rose-400">{dtc.dtc_code}</td>
+                    <td className="py-2 px-3">
+                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                        dtc.severity === 'CRITICAL' ? 'bg-rose-50 dark:bg-rose-950 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-800' : 'bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800'
                       }`}>
                         {dtc.severity}
                       </span>
                     </td>
-                    <td className="py-2.5 px-3 text-cyan-300 font-semibold">{dtc.subsystem}</td>
-                    <td className="py-2.5 px-3 text-slate-200 font-sans">{dtc.description}</td>
-                    <td className="py-2.5 px-3 text-slate-400 font-sans text-[11px]">{dtc.action}</td>
-                    <td className="py-2.5 px-3 text-slate-400 text-[11px]">{dtc.timestamp_iso}</td>
+                    <td className="py-2 px-3 text-blue-700 dark:text-blue-400 font-semibold">{dtc.subsystem}</td>
+                    <td className="py-2 px-3 text-slate-800 dark:text-slate-200 font-sans">{dtc.description}</td>
+                    <td className="py-2 px-3 text-slate-500 font-sans text-[11px]">{dtc.action}</td>
+                    <td className="py-2 px-3 text-slate-400 text-[11px]">{dtc.timestamp_iso}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         ) : (
-          <div className="p-6 text-center text-xs text-slate-400 bg-dark-900/60 rounded-lg flex items-center justify-center space-x-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-            <span>No Active Faults or Diagnostic Trouble Codes. Vehicle systems nominal.</span>
+          <div className="p-5 text-center text-xs text-slate-500 bg-slate-50 dark:bg-dark-850 rounded flex items-center justify-center space-x-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+            <span>No active Diagnostic Trouble Codes. Vehicle electronic subsystems nominal.</span>
           </div>
         )}
       </div>
 
       {/* Fault Injection Matrix */}
-      <div className="glass-panel p-5 rounded-xl border border-dark-600 space-y-4">
-        <div className="flex items-center justify-between border-b border-dark-700 pb-2">
-          <h3 className="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center space-x-2">
-            <Zap className="w-4 h-4 text-amber-400" />
-            <span>Interactive Fault Injection Matrix (Test System Resilience)</span>
-          </h3>
-          <span className="text-[11px] text-slate-400 font-mono">10 Configurable Scenarios</span>
+      <div className="glass-panel p-4 rounded-lg border space-y-3">
+        <div className="flex items-center justify-between border-b border-slate-200 dark:border-dark-700 pb-2">
+          <div>
+            <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
+              14-Scenario Hardware & Environmental Fault Injection Matrix
+            </h3>
+            <p className="text-[11px] text-slate-500 mt-0.5">
+              Toggle specific sensor anomalies to evaluate VCU derating, battery isolation, and thermal response.
+            </p>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {supportedFaults.map((f) => {
+            const isActive = !!activeFaults[f.name];
             const Icon = f.icon;
-            const isInject = activeFaults[f.name];
             return (
-              <div key={f.name} className={`p-4 rounded-xl border transition flex items-center justify-between ${
-                isInject ? 'bg-rose-950/40 border-rose-500/60' : 'bg-dark-900/70 border-dark-700 hover:border-dark-500'
-              }`}>
-                <div className="space-y-1 max-w-[70%]">
-                  <div className="flex items-center space-x-2">
-                    <Icon className={`w-4 h-4 ${isInject ? 'text-rose-400' : 'text-slate-400'}`} />
-                    <h4 className="text-xs font-bold text-slate-100">{f.name}</h4>
-                    <span className="text-[10px] font-mono text-cyan-400">[{f.ecu}]</span>
+              <div
+                key={f.name}
+                className={`p-3 rounded-lg border transition flex items-start justify-between gap-3 ${
+                  isActive
+                    ? 'bg-rose-50 dark:bg-rose-950/40 border-rose-300 dark:border-rose-800'
+                    : 'bg-slate-50 dark:bg-dark-850 border-slate-200 dark:border-dark-700'
+                }`}
+              >
+                <div className="flex items-start space-x-2.5">
+                  <div className={`p-2 rounded mt-0.5 ${isActive ? 'bg-rose-100 dark:bg-rose-900/60 text-rose-600' : 'bg-slate-200 dark:bg-dark-800 text-slate-500'}`}>
+                    <Icon className="w-4 h-4" />
                   </div>
-                  <p className="text-[11px] text-slate-400">{f.desc}</p>
+                  <div>
+                    <div className="flex items-center space-x-2">
+                      <span className="font-bold text-xs text-slate-900 dark:text-slate-100">{f.name}</span>
+                      <span className={`text-[9px] px-1.5 py-0.2 rounded font-mono font-bold ${
+                        f.severity === 'CRITICAL' ? 'bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-400' : 'bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-400'
+                      }`}>
+                        {f.severity}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 font-sans leading-tight">{f.desc}</p>
+                    <span className="text-[10px] text-slate-400 font-mono mt-1 block">ECU: {f.ecu}</span>
+                  </div>
                 </div>
 
                 <button
                   onClick={() => handleToggleFault(f.name)}
                   disabled={loadingFault === f.name}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold font-mono transition ${
-                    isInject
-                      ? 'bg-rose-500 hover:bg-rose-400 text-dark-900 shadow-md shadow-rose-900/50'
-                      : 'bg-dark-800 text-slate-300 hover:bg-dark-700 hover:text-white border border-dark-600'
+                  className={`px-3 py-1 rounded text-xs font-mono font-bold transition flex-shrink-0 ${
+                    isActive
+                      ? 'bg-rose-600 text-white hover:bg-rose-700 shadow-sm'
+                      : 'bg-slate-200 dark:bg-dark-750 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-dark-700'
                   }`}
                 >
-                  {isInject ? 'CLEAR FAULT' : 'INJECT'}
+                  {isActive ? 'TRIPPED' : 'INJECT'}
                 </button>
               </div>
             );
